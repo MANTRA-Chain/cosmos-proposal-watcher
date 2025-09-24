@@ -85,8 +85,10 @@ pub async fn track_proposal_status(
             let proposals = match get_proposals(proposal_status.clone() as i32, &grpc_uri).await {
                 Ok(proposal) => proposal,
                 Err(error) => {
-                    error!("[{}] Failed to get {:?} proposals from {}: {} - will retry next refresh", 
-                           chain_id, proposal_status, grpc_uri, error);
+                    error!(
+                        "[{}] Failed to get {:?} proposals from {}: {} - will retry next refresh",
+                        chain_id, proposal_status, grpc_uri, error
+                    );
                     continue 'out;
                 }
             };
