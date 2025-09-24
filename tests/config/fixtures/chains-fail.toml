@@ -1,0 +1,18 @@
+[slack]
+channel = 'testing'
+assignee = '@here'
+
+[incident_io]
+url = 'https://api.incident.io/v2/alert_events/http/dsafdsfqdasdasd'
+token = 'asfwedgertwerzdfse'
+
+[[chains]]
+id = 'devnet-1'
+grpc_addr = 'https://///devnet.xcxcxc.com:9090'
+refresh = '60'
+filter_status = 2
+filter_type = '/cosmos.params.v1beta1.ParameterChangeProposal'
+[[chains]]
+id = 'devnet-2'
+grpc_addr = 'https://devnet2.xcxcxc.com:9090'
+refresh = '20'

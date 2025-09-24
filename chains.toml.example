@@ -1,0 +1,41 @@
+# Cosmos Proposal Watcher Configuration
+# Copy this file to chains.toml and customize for your needs
+
+# Global refresh interval (optional, can be overridden per chain)
+refresh = "30s"
+
+# Slack configuration (optional)
+[slack]
+webhook_url = "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+
+# Incident.io configuration (optional)
+[incidentio]
+# Full URL including the connection ID
+url = "https://api.incident.io/v2/alert_events/http/YOUR_CONNECTION_ID"
+# API token for authentication
+token = "YOUR_INCIDENTIO_API_TOKEN"
+
+# Chain configurations
+[[chains]]
+# Chain identifier
+chain_id = "mantra-1"
+grpc = "https://grpc.mantrachain.io"
+# Refresh interval for this chain (optional, overrides global)
+refresh = "30s"
+# Filter by proposal status (1=Deposit, 2=Voting, 3=Passed, 4=Rejected, 5=Failed). if empty or omitted, means all status
+filter_status = [1, 2, 3, 4, 5]
+# Filter by message type (optional). if empty or omitted, means all types
+# filter_type = ["/cosmos.upgrade.v1beta1.MsgSoftwareUpgrade"]
+
+[[chains]]
+chain_id = "cosmoshub-4"
+grpc = "https://grpc.cosmos.network"
+refresh = "120s"
+filter_status = [2, 3]
+
+# Add more chains as needed
+# [[chains]]
+# chain_id = "osmosis-1"
+# grpc = "https://grpc.osmosis.zone"
+# refresh = "60s"
+# filter_status = [1, 2, 3, 4, 5]
