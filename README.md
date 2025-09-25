@@ -20,14 +20,18 @@ The watcher:
 1. Polls chain gRPC endpoints at regular intervals
 2. Tracks proposal state transitions
 3. Sends alerts when proposals change status
-4. Automatically resolves previous alerts when proposals progress
+4. For Incident.io: Automatically resolves previous alerts when proposals progress
 
-### Alert Flow for Incident.io
+### Incident.io Integration
+
+The Incident.io integration provides intelligent alert lifecycle management:
 
 - **Deposit Status**: Creates firing alert
-- **Voting Status**: Resolves Deposit alert, creates new firing alert
-- **Passed Status**: Resolves Voting alert, creates and immediately resolves Passed alert
-- **Rejected/Failed Status**: Resolves Voting alert, creates urgent firing alert
+- **Voting Status**: Resolves previous Deposit alert, creates new firing alert
+- **Passed Status**: Resolves previous Voting alert, creates and immediately resolves Passed alert
+- **Rejected/Failed Status**: Resolves previous Voting alert, creates urgent firing alert (severity: urgent)
+
+This ensures your incident management system accurately reflects the current proposal state without manual intervention.
 
 ## Installation
 
