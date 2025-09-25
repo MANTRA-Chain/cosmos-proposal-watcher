@@ -27,6 +27,18 @@ pub enum ProposalStatus {
     Failed,
 }
 
+/// Configuration for tracking proposal status
+pub struct TrackingConfig {
+    pub grpc_addr: Url,
+    pub chain_id: String,
+    pub refresh: Duration,
+    pub filter_status: Vec<i32>,
+    pub filter_type: Option<Vec<String>>,
+    pub slack_config: Option<SlackConfig>,
+    pub incidentio_config: Option<IncidentIOConfig>,
+    pub is_mainnet: bool,
+}
+
 /// Fetches on-chain proposal of given proposal_status and chain
 pub async fn get_proposals(proposal_status: i32, grpc_addr: &Uri) -> Result<Vec<Proposal>> {
     let mut client = create_grpc_client(grpc_addr.clone(), QueryClient::new)
@@ -48,31 +60,26 @@ pub async fn get_proposals(proposal_status: i32, grpc_addr: &Uri) -> Result<Vec<
         .map_err(|e| anyhow::anyhow!("Failed to fetch proposals from {}: {}", grpc_addr, e))
 }
 
-pub async fn track_proposal_status(
-    grpc_addr: Url,
-    chain_id: String,
-    refresh: Duration,
-    filter_status: Vec<i32>,
-    filter_type: Option<Vec<String>>,
-    slack_config: Option<SlackConfig>,
-    incidentio_config: Option<IncidentIOConfig>,
-) -> Result<()> {
-    let grpc_uri: Uri = grpc_addr
-        .to_string()
-        .parse()
-        .context(format!("Failed to parse gRPC address: {}", grpc_addr))?;
-    let chain_id_path = chain_id.to_owned();
+pub async fn track_proposal_status(config: TrackingConfig) -> Result<()> {
+    let grpc_uri: Uri = config.grpc_addr.to_string().parse().context(format!(
+        "Failed to parse gRPC address: {}",
+        config.grpc_addr
+    ))?;
+    let chain_id_path = config.chain_id.to_owned();
     let deposit_path = chain_id_path.clone() + "_deposit_id";
     let voting_path = chain_id_path.clone() + "_voting_id";
     let passed_path = chain_id_path.clone() + "_passed_id";
     let rejected_path = chain_id_path.clone() + "_rejected_id";
     let failed_path = chain_id_path.clone() + "_failed_id";
-    let mut collect_interval = tokio::time::interval(refresh.to_owned());
+    let mut collect_interval = tokio::time::interval(config.refresh.to_owned());
     'out: loop {
         collect_interval.tick().await;
         for proposal_status in all::<ProposalStatus>().collect::<Vec<_>>() {
-            if !filter_status.contains(&(proposal_status.clone() as i32)) {
-                info!("[{}] [{:?}] filtered out", chain_id, proposal_status);
+            if !config
+                .filter_status
+                .contains(&(proposal_status.clone() as i32))
+            {
+                info!("[{}] [{:?}] filtered out", config.chain_id, proposal_status);
                 continue;
             }
             let proposal_status_path = match proposal_status {
@@ -87,7 +94,7 @@ pub async fn track_proposal_status(
                 Err(error) => {
                     error!(
                         "[{}] Failed to get {:?} proposals from {}: {} - will retry next refresh",
-                        chain_id, proposal_status, grpc_uri, error
+                        config.chain_id, proposal_status, grpc_uri, error
                     );
                     continue 'out;
                 }
@@ -116,10 +123,11 @@ pub async fn track_proposal_status(
                     // Check if the proposal status changed recently:
                     // - Must be within 2x the refresh interval (buffer for timing issues)
                     // - AND not already in our tracked proposals list (avoid duplicate alerts)
-                    t > (now - refresh.as_secs() as i64 * 2) && !last_proposals_ids.contains(&x.id)
+                    t > (now - config.refresh.as_secs() as i64 * 2)
+                        && !last_proposals_ids.contains(&x.id)
                 })
                 .filter(|&x| {
-                    if let Some(filter_type) = &filter_type {
+                    if let Some(ref filter_type) = config.filter_type {
                         x.messages
                             .iter()
                             .any(|msg| filter_type.contains(&msg.type_url))
@@ -133,33 +141,35 @@ pub async fn track_proposal_status(
                 .collect();
             info!(
                 "[{}] [{:?}] last_proposals_id={:?}",
-                chain_id, proposal_status, last_proposals_ids
+                config.chain_id, proposal_status, last_proposals_ids
             );
 
             if !new_proposals_id_list.is_empty() {
                 info!(
                     "[{}][{:?}] New proposal(s) are found!",
-                    chain_id, proposal_status
+                    config.chain_id, proposal_status
                 );
                 info!(
                     "[{}][{:?}] NEW_PROPOSAL_ID_LIST={:?}",
-                    chain_id, proposal_status, new_proposals_id_list
+                    config.chain_id, proposal_status, new_proposals_id_list
                 );
-                if let Some(ref slack_config) = slack_config {
+                if let Some(ref slack_config) = config.slack_config {
                     slack_config
                         .send_alert(
-                            chain_id.clone(),
+                            config.chain_id.clone(),
                             new_proposals_id_list.clone(),
                             proposal_status.clone(),
+                            config.is_mainnet,
                         )
                         .await
                 }
-                if let Some(ref incidentio_config) = incidentio_config {
+                if let Some(ref incidentio_config) = config.incidentio_config {
                     incidentio_config
                         .send_alert(
-                            chain_id.clone(),
+                            config.chain_id.clone(),
                             new_proposals_id_list.clone(),
                             proposal_status,
+                            config.is_mainnet,
                         )
                         .await
                 }

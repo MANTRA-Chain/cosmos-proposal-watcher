@@ -19,7 +19,9 @@ filter_type = [
     '/ibc.core.client.v1.UpgradeProposal',
     '/ibc.core.client.v1.ClientUpdateProposal'
 ]
+mainnet = false
 [[chains]]
 id = 'devnet-2'
 grpc_addr = 'https://devnet2.xcxcxc.com:9090'
 refresh = '20s'
+mainnet = false

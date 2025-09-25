@@ -20,13 +20,13 @@ struct AlertEvent {
     metadata: HashMap<String, String>,
 }
 
-// Add this new struct to group alert parameters
 struct AlertParams {
     deduplication_key: String,
     status: String,
     title: String,
     description: String,
     proposal_status: Option<ProposalStatus>,
+    is_mainnet: bool,
 }
 
 impl IncidentIOConfig {
@@ -35,6 +35,7 @@ impl IncidentIOConfig {
         chain_id: String,
         proposal_list: Vec<u64>,
         proposal_status: ProposalStatus,
+        is_mainnet: bool,
     ) {
         let client = reqwest::Client::new();
         let token = match &self.token {
@@ -62,6 +63,7 @@ impl IncidentIOConfig {
                             proposal_id, chain_id
                         ),
                         proposal_status: None,
+                        is_mainnet,
                     };
                     self.send_single_alert(&client, &self.url, token, params)
                         .await;
@@ -81,6 +83,7 @@ impl IncidentIOConfig {
                             proposal_id, chain_id, status_str
                         ),
                         proposal_status: None,
+                        is_mainnet,
                     };
                     self.send_single_alert(&client, &self.url, token, params)
                         .await;
@@ -122,6 +125,7 @@ impl IncidentIOConfig {
                 title,
                 description,
                 proposal_status: Some(proposal_status.clone()),
+                is_mainnet,
             };
             self.send_single_alert(&client, &self.url, token, params)
                 .await;
@@ -140,6 +144,7 @@ impl IncidentIOConfig {
                         proposal_id, chain_id
                     ),
                     proposal_status: None,
+                    is_mainnet,
                 };
                 self.send_single_alert(&client, &self.url, token, params)
                     .await;
@@ -157,6 +162,7 @@ impl IncidentIOConfig {
         let mut metadata = HashMap::new();
         metadata.insert("team".to_string(), "governance".to_string());
         metadata.insert("service".to_string(), "cosmos-proposal-watcher".to_string());
+        metadata.insert("mainnet".to_string(), params.is_mainnet.to_string());
 
         // Add severity based on status and proposal status
         let severity = if let Some(ProposalStatus::Rejected | ProposalStatus::Failed) =

@@ -1,10 +1,10 @@
-use cosmos_proposal_watcher::{config, init_crypto_provider, worker, DEFAULT_CONFIG_PATH};
+use cosmos_proposal_watcher::worker::{track_proposal_status, TrackingConfig};
+use cosmos_proposal_watcher::{config, init_crypto_provider, DEFAULT_CONFIG_PATH};
 use env_logger::Builder;
 use log::{error, info, LevelFilter};
 use std::env;
 use std::path::PathBuf;
 use std::result::Result;
-use std::time::Duration;
 use structopt::StructOpt;
 
 /// Helper sub-commands
@@ -56,23 +56,33 @@ async fn start(config_path: Option<PathBuf>) -> Result<(), Box<dyn std::error::E
         }
         init_crypto_provider();
         info!("Started proposal watcher server");
-        tokio::task::spawn(proposal_status_collector(config.clone())).await?;
-        loop {
-            std::thread::sleep(Duration::new(30, 0));
-        }
+
+        proposal_status_collector(config).await;
+        Ok(())
     }
 }
 
 async fn proposal_status_collector(config: config::Config) {
-    for chain_config in config.chains.iter() {
-        tokio::task::spawn(worker::track_proposal_status(
-            chain_config.grpc_addr.clone(),
-            chain_config.id.clone(),
-            chain_config.refresh,
-            chain_config.filter_status.clone(),
-            chain_config.filter_type.clone(),
-            config.slack.clone(),
-            config.incident_io.clone(),
-        ));
+    let mut handles = vec![];
+    for chain_config in config.chains.clone() {
+        let slack = config.slack.clone();
+        let incident_io = config.incident_io.clone();
+        let handle = tokio::spawn(async move {
+            let tracking_config = TrackingConfig {
+                grpc_addr: chain_config.grpc_addr.clone(),
+                chain_id: chain_config.id.clone(),
+                refresh: chain_config.refresh,
+                filter_status: chain_config.filter_status.clone(),
+                filter_type: chain_config.filter_type.clone(),
+                slack_config: slack,
+                incidentio_config: incident_io,
+                is_mainnet: chain_config.mainnet,
+            };
+            track_proposal_status(tracking_config)
+                .await
+                .expect("failed to track proposal status");
+        });
+        handles.push(handle);
     }
+    futures::future::join_all(handles).await;
 }

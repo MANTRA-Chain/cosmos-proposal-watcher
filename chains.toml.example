@@ -26,16 +26,19 @@ refresh = "30s"
 filter_status = [1, 2, 3, 4, 5]
 # Filter by message type (optional). if empty or omitted, means all types
 # filter_type = ["/cosmos.upgrade.v1beta1.MsgSoftwareUpgrade"]
+mainnet = true
 
 [[chains]]
 chain_id = "cosmoshub-4"
 grpc = "https://grpc.cosmos.network"
 refresh = "120s"
 filter_status = [2, 3]
+mainnet = true
 
 # Add more chains as needed
 # [[chains]]
-# chain_id = "osmosis-1"
-# grpc = "https://grpc.osmosis.zone"
+# chain_id = "osmo-test-5"
+# grpc = "https://grpc.testnet.osmosis.zone"
 # refresh = "60s"
 # filter_status = [1, 2, 3, 4, 5]
+# mainnet = false

@@ -47,6 +47,8 @@ pub struct ChainConfig {
     pub filter_status: Vec<i32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub filter_type: Option<Vec<String>>,
+    #[serde(default)]
+    pub mainnet: bool,
 }
 
 /// Attempt to load and parse the TOML config file as a `Config`.

@@ -1,6 +1,6 @@
 [package]
 name = "cosmos-proposal-watcher"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Leo Pang <leo.pang@mantra.finance>"]
 edition = "2021"
 

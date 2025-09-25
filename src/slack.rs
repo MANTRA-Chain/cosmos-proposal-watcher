@@ -17,6 +17,7 @@ impl SlackConfig {
         chain_id: String,
         proposal_list: Vec<u64>,
         proposal_status: ProposalStatus,
+        is_mainnet: bool,
     ) {
         let list: Vec<String> = proposal_list
             .iter()
@@ -24,11 +25,17 @@ impl SlackConfig {
             .collect();
         let proposal_id = list.join(",");
 
+        let network_type = if is_mainnet {
+            ":warning: MAINNET"
+        } else {
+            ":test_tube: TESTNET"
+        };
+
         let slack = Slack::new(self.webhook_url.clone().unwrap()).unwrap();
         let p = PayloadBuilder::new()
             .text(format!(
-                "[{}]\nNew proposal(s) found: {}\n Status: {:?}\n {}",
-                chain_id, proposal_id, proposal_status, self.assignee
+                "[{}] {}\nNew proposal(s) found: {}\nStatus: {:?}\n{}",
+                chain_id, network_type, proposal_id, proposal_status, self.assignee
             ))
             .channel(format!("#{}", self.channel))
             .username("New Proposal Alert")
